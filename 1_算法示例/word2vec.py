@@ -5,7 +5,7 @@ warnings.filterwarnings("ignore")
 '''
 1 获取文本语料
 '''
-with open('news.txt', 'r', encoding='utf-8') as f:
+with open('1_算法示例/news.txt', 'r', encoding='utf-8') as f:
     news = f.readlines()
 
 stop_list = set('for a of the and to in <unk>'.split(' '))
@@ -16,7 +16,7 @@ texts = [[word for word in document.lower().split() if word not in stop_list] fo
 '''
 from gensim.models import word2vec
 
-sentences = word2vec.Text8Corpus('news.txt')  # 将语料保存在sentence中
+sentences = word2vec.Text8Corpus('1_算法示例/news.txt')  # 将语料保存在sentence中
 model = word2vec.Word2Vec(sentences, sg=1, vector_size=100, window=5, min_count=5, negative=3, sample=0.001, hs=1,
                           workers=4)  # 生成词向量空间模型
 '''
@@ -28,13 +28,13 @@ negative: 用于设置多少个负采样个数
 hs: word2vec两个解法的选择
 workers: 训练的并行个数
 '''
-model.save('text_word2vec.model')  # 保存模型
+model.save('1_算法示例/text_word2vec.model')  # 保存模型
 
 '''
 3 加载模型，实现各个功能
 '''
 # 加载模型
-model = word2vec.Word2Vec.load('text_word2vec.model')
+model = word2vec.Word2Vec.load('1_算法示例/text_word2vec.model')
 
 # 计算两个词的相似度/相关程度
 print("1.计算两个词的相似度/相关程度")
