@@ -1,84 +1,81 @@
-import numpy as np
+import warnings
 
+warnings.filterwarnings("ignore")
 
-# 将相似度矩阵代入softmax公式，可以得到一个满足概率分布的矩阵
-def softmax(x):
-    orig_shape = x.shape
+'''
+1 获取文本语料
+'''
+with open('news.txt', 'r', encoding='utf-8') as f:
+    news = f.readlines()
 
-    # 根据输入类型是矩阵还是向量分别计算softmax
-    if len(x.shape) > 1:
-        # 矩阵
-        tmp = np.max(x, axis=1)  # 得到每行的最大值，用于缩放每行的元素，避免溢出
-        x -= tmp.reshape((x.shape[0], 1))  # 使每行减去所在行的最大值
+stop_list = set('for a of the and to in <unk>'.split(' '))
+# 对每篇文档进行转小写，并且以空格分割，同时过滤掉所有的停止词
+texts = [[word for word in document.lower().split() if word not in stop_list] for document in news]
+'''
+2 载入数据，训练并保存模型
+'''
+from gensim.models import word2vec
 
-        x = np.exp(x)  # 第一步，计算所有值以e为底的x次幂
-        tmp = np.sum(x, axis=1)  # 将每行求和并保存
-        x /= tmp.reshape((x.shape[0], 1))  # 所有元素除以所在行的元素和（广播运算）
+sentences = word2vec.Text8Corpus('news.txt')  # 将语料保存在sentence中
+model = word2vec.Word2Vec(sentences, sg=1, vector_size=100, window=5, min_count=5, negative=3, sample=0.001, hs=1,
+                          workers=4)  # 生成词向量空间模型
+'''
+sg：用于设置训练算法，默认为0，对应CBOW算法；sg=1则采用skip-gram算法
+vector_size：是指输出的词的向量维数，默认为100,大的size需要更多的训练数据,但是效果会更好,推荐值为几十到几百
+window：为训练的窗口大小，8表示每个词考虑前8个词与后8个词,默认为5
+min_count: 可以对词库做过滤，词频少于min_count次数的单词会被丢弃掉, 默认值为5
+negative: 用于设置多少个负采样个数
+hs: word2vec两个解法的选择
+workers: 训练的并行个数
+'''
+model.save('text_word2vec.model')  # 保存模型
 
-    else:
-        # 向量
-        tmp = np.max(x)  # 得到最大值
-        x -= tmp  # 利用最大值缩放数据
-        x = np.exp(x)  # 对所有元素求以e为底的x次幂
-        tmp = np.sum(x)  # 求元素和
-        x /= tmp  # 求somftmax
-    return x
+'''
+3 加载模型，实现各个功能
+'''
+# 加载模型
+model = word2vec.Word2Vec.load('text_word2vec.model')
 
+# 计算两个词的相似度/相关程度
+print("1.计算两个词的相似度/相关程度")
+word1 = 'director'
+word2 = 'president'
+result1 = model.wv.similarity(word1, word2)
+print(word1 + "和" + word2 + "的相似度为：", result1)
 
-# 计算softmax的梯度和代价，假设给定中心词要预测'c'，预测下一个字母是'd'
-def softmaxCostAndGradient(predicted, target, outputVectors):
-    '''
-    predicted：输入词向量，也就是例子中'c'的词向量
-    target：目标词向量的索引，也就是真实值'd'的索引
-    outputVectors：输出向量矩阵
-    '''
-    v_hat = predicted  # 中心词向量
-    z = np.dot(outputVectors, v_hat)  # 输出矩阵和中心词向量的内积，预测得分
-    y_hat = softmax(z)  # 预测输出y_hat
-    cost = -np.log(y_hat[target])  # 计算代价
-    z = y_hat.copy()
-    z[target] -= 1.0
-    grad = np.outer(z, v_hat)  # 计算中心词的梯度
-    gradPred = np.dot(outputVectors.T, z)  # 计算输出词向量矩阵的梯度
-    return cost, gradPred, grad
+# 计算某个词的相关词列表
+print("2.计算某个词的相关词列表")
+word = 'good'
+result2 = model.wv.most_similar(word, topn=10)  # 10个最相关的
+print("和" + word + "最相关的词有：")
+for item in result2:
+    print(item[0], item[1])
 
-# skip-gram算法
-def skipgram(currentWord, contextWords, tokens, inputVectors, outputVectors):
-    '''
-    currentWord:当前的中心词
-    contextWords:待预测的词
-    tokens:用于映射字母在输入输出矩阵中的索引
-    inputVectors: 输入矩阵，语料库中字母的数量是5，我们使用3维向量表示一个字母
-    outputVectors：输出矩阵
-    '''
-    # 初始化变量
-    cost = 0.0
-    gradIn = np.zeros(inputVectors.shape)
-    gradOut = np.zeros(outputVectors.shape)
-    cword_idx = tokens[currentWord]  # 得到中心单词的索引
-    v_hat = inputVectors[cword_idx]  # 得到中心单词的词向量
+# 寻找对应关系
+print("3.寻找对应关系")
+print(' "company" is to "stake" as "enterprise" is to ...? ')
+result3 = model.wv.most_similar(['company', 'stake'], ['enterprise'], topn=3)
+for item in result3:
+    print(item[0], item[1])
 
-    # 循环预测上下文中每个字母
-    for j in contextWords:
-        u_idx = tokens[j]  # 得到目标字母的索引
-        c_cost, c_grad_in, c_grad_out = softmaxCostAndGradient(v_hat, u_idx, outputVectors)  # 计算一个中心字母预测一个上下文字母的情况
-        cost += c_cost  # 所有代价求和
-        gradIn[cword_idx] += c_grad_in  # 中心词向量梯度求和
-        gradOut += c_grad_out  # 输出词向量矩阵梯度求和
-    return cost, gradIn, gradOut
+# 寻找不合群的词
+print("4.寻找不合群的词")
+result4 = model.wv.doesnt_match("flower grass cat".split())
+print("不合群的词：", result4)
 
+# 查看词向量（只在model中保留中的词）
+print("5.查看词向量（只在model中保留中的词）")
+word = 'cat'
+print(word, model.wv[word])
 
-inputVectors = np.random.randn(5, 3)  # 输入矩阵，语料库中字母的数量是5，我们使用3维向量表示一个字母
-outputVectors = np.random.randn(5, 3)  # 输出矩阵
-sentence = ['a', 'e', 'd', 'b', 'd', 'c', 'd', 'e', 'e', 'c', 'a']  # 句子
-centerword = 'c'  # 中心字母
-context = ['a', 'e', 'd', 'b', 'd', 'd', 'e', 'e', 'c', 'a']  # 上下文字母
-tokens = dict([("a", 0), ("b", 1), ("c", 2), ("d", 3), ("e", 4)])  # 用于映射字母在输入输出矩阵中的索引
-c, gin, gout = skipgram(centerword, context, tokens, inputVectors, outputVectors)
-step = 0.01  # 更新步进
-print('原始输入矩阵:\n',inputVectors)
-print('原始输出矩阵:\n',outputVectors)
-inputVectors -= step * gin  # 更新输入词向量矩阵
-outputVectors -= step * gout
-print('更新后的输入矩阵:\n', inputVectors)
-print('更新后的输出矩阵:\n', outputVectors)
+# 在使用词向量时，如果出现了在训练时未出现的词，可采用增量训练的方法，训练未登陆词以得到其词向量
+'''
+4 增量训练
+'''
+model = word2vec.Word2Vec.load('text_word2vec.model')
+more_sentences = [
+    ['Advanced', 'users', 'can', 'load', 'a', 'model', 'and', 'continue', 'training', 'it', 'with', 'more',
+     'sentences']]
+model.build_vocab(more_sentences, update=True)
+model.train(more_sentences, total_examples=model.corpus_count, epochs=model.epochs)
+model.save('text_word2vec.model')
