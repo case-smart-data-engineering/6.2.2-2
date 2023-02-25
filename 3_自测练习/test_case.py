@@ -5,4 +5,10 @@ from my_solution import solution
 
 # 测试用例
 def test_solution():
-    assert solution(8) == 9  # 判断输出结果，预期increment(8)应该为9
+    words = "flower grass cat"
+    # 正确答案
+    correct_solution = 'cat'
+    
+    # 程序求解结果
+    result = solution(G)
+    assert correct_solution == result
