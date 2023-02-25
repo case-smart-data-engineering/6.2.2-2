@@ -3,7 +3,7 @@
 from my_solution import solution
 
 
-# 测试用例
+# 测试用例:找出不同类的词
 def test_solution():
     words = "flower grass cat"
     # 正确答案
