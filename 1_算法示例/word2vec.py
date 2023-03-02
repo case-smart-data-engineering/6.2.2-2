@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+
 '''
 1 获取文本语料
 '''
