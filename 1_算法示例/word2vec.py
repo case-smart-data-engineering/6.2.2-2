@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-
-
-import warnings
-
-warnings.filterwarnings("ignore")
-
 '''
 1 获取文本语料
 '''
@@ -70,7 +64,7 @@ if __name__ == '__main__':
     # 查看词向量（只在model中保留中的词）
     print("5.查看词向量(只在model中保留中的词)")
     word = 'cat'
-    print(word, model.wv[word])
+    print(word, model.wv[word])  # 默认词向量长度为100
 
 # 在使用词向量时，如果出现了在训练时未出现的词，可采用增量训练的方法，训练未登陆词以得到其词向量
 '''
