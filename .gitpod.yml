@@ -1,16 +1,15 @@
 # List the start up tasks. Learn more https://www.gitpod.io/docs/config-start-tasks/
-image:
-  file: .gitpod.Dockerfile
-
+# List the start up tasks. Learn more https://www.gitpod.io/docs/config-start-tasks/
 tasks:
-  - name: Setup Python
+  - name: "install requirements"
     command: |
-      python3.8 -m venv venv
-      . venv/bin/activate
-      pip install --upgrade pip
+      pip install -U pip
+      pip install yapf
       pip install -r requirements.txt
+      exit
 
-# 配置启动时的命令
-ports:
-  - port: 8000
-    onOpen: open-preview
+vscode:
+  extensions:
+    - ms-python.python
+    - esbenp.prettier-vscode
+    - ms-toolsai.jupyter
