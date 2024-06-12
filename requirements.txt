@@ -1,3 +1,4 @@
 pytest
 scipy
 gensim
+tensorflow==1.15
